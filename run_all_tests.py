@@ -134,6 +134,212 @@ async def test_core_functionality():
     return results
 
 
+async def test_stock_quotes_migration():
+    """Test stock quotes migration to Robinhood primary"""
+    results = TestResults()
+
+    print_section("STOCK QUOTES MIGRATION TESTS")
+
+    try:
+        # Import the stock provider
+        from market_data.providers.unified_stock_provider import UnifiedStockProvider
+        
+        provider = UnifiedStockProvider()
+
+        # Test 1: Robinhood authentication
+        try:
+            await provider.robinhood_provider.ensure_authenticated()
+            results.add_result("Robinhood Auth", True, "Authentication successful")
+        except Exception as e:
+            results.add_result("Robinhood Auth", False, f"Auth failed: {e}")
+            return results
+
+        # Test 2: Single quote
+        try:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                result = await provider.get_stock_quote(session, "AAPL")
+            
+            if result.get('provider') == 'robinhood' and 'data' in result:
+                price = result['data'].get('c', 0)
+                results.add_result("Single Quote", True, f"AAPL: ${price:.2f} from Robinhood")
+            else:
+                results.add_result("Single Quote", False, f"Provider: {result.get('provider')}")
+        except Exception as e:
+            results.add_result("Single Quote", False, f"Error: {e}")
+
+        # Test 3: Batch quotes
+        try:
+            batch_result = await provider.get_multiple_quotes(['AAPL', 'TSLA'])
+            
+            if batch_result.get('provider') == 'robinhood' and len(batch_result.get('data', {})) > 0:
+                batch_size = batch_result.get('batch_size', 0)
+                results.add_result("Batch Quotes", True, f"{batch_size} symbols in single request")
+            else:
+                results.add_result("Batch Quotes", False, "Batch processing failed")
+        except Exception as e:
+            results.add_result("Batch Quotes", False, f"Error: {e}")
+
+        # Test 4: Performance comparison
+        try:
+            import time
+            
+            # Single requests
+            start = time.time()
+            for symbol in ['AAPL', 'TSLA']:
+                await provider.robinhood_provider.get_stock_quote(symbol)
+            single_time = time.time() - start
+            
+            # Batch request
+            start = time.time()
+            await provider.robinhood_provider.get_multiple_quotes(['AAPL', 'TSLA'])
+            batch_time = time.time() - start
+            
+            if batch_time < single_time:
+                improvement = ((single_time - batch_time) / single_time) * 100
+                results.add_result("Performance", True, f"{improvement:.1f}% faster with batch")
+            else:
+                results.add_result("Performance", False, "No performance improvement")
+        except Exception as e:
+            results.add_result("Performance", False, f"Error: {e}")
+
+    except Exception as e:
+        results.add_result("Stock Migration", False, f"Import error: {e}")
+
+    return results
+
+
+async def test_fundamentals_migration():
+    """Test fundamentals migration to Robinhood primary"""
+    results = TestResults()
+
+    print_section("FUNDAMENTALS MIGRATION TESTS")
+
+    try:
+        # Import the fundamentals provider
+        from market_data.providers.unified_fundamentals_provider import UnifiedFundamentalsProvider
+        
+        provider = UnifiedFundamentalsProvider()
+
+        # Test 1: Robinhood authentication
+        try:
+            await provider.robinhood_provider.ensure_authenticated()
+            results.add_result("Robinhood Auth", True, "Authentication successful")
+        except Exception as e:
+            results.add_result("Robinhood Auth", False, f"Auth failed: {e}")
+            return results
+
+        # Test 2: Basic fundamentals
+        try:
+            result = await provider.robinhood_provider.get_fundamentals("AAPL")
+            
+            if result.get('provider') == 'robinhood' and 'data' in result:
+                market_cap = result['data']['fundamentals'].get('market_cap', 'N/A')
+                results.add_result("Basic Fundamentals", True, f"Market cap: {market_cap}")
+            else:
+                results.add_result("Basic Fundamentals", False, f"Provider: {result.get('provider')}")
+        except Exception as e:
+            results.add_result("Basic Fundamentals", False, f"Error: {e}")
+
+        # Test 3: Enhanced fundamentals
+        try:
+            enhanced_result = await provider.get_enhanced_fundamentals("AAPL", True, True)
+            
+            if enhanced_result.get('provider') == 'robinhood' and enhanced_result.get('enhanced', False):
+                data = enhanced_result.get('data', {})
+                has_earnings = 'earnings' in data
+                has_ratings = 'analyst_ratings' in data
+                results.add_result("Enhanced Fundamentals", True, f"Earnings: {has_earnings}, Ratings: {has_ratings}")
+            else:
+                results.add_result("Enhanced Fundamentals", False, "Enhancement failed")
+        except Exception as e:
+            results.add_result("Enhanced Fundamentals", False, f"Error: {e}")
+
+        # Test 4: MCP integration
+        try:
+            from market_data.providers.market_client import MultiProviderClient
+            client = MultiProviderClient()
+            
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                result = await client.get_fundamentals(session, "AAPL")
+            
+            if result.get('provider') == 'robinhood':
+                results.add_result("MCP Integration", True, "Using Robinhood provider")
+            else:
+                results.add_result("MCP Integration", False, f"Provider: {result.get('provider')}")
+        except Exception as e:
+            results.add_result("MCP Integration", False, f"Error: {e}")
+
+    except Exception as e:
+        results.add_result("Fundamentals Migration", False, f"Import error: {e}")
+
+    return results
+
+
+async def test_historical_migration():
+    """Test historical data migration to Robinhood primary"""
+    results = TestResults()
+
+    print_section("HISTORICAL DATA MIGRATION TESTS")
+
+    try:
+        # Import the historical provider
+        from market_data.providers.unified_historical_provider import UnifiedHistoricalProvider
+        
+        provider = UnifiedHistoricalProvider()
+
+        # Test 1: Robinhood authentication
+        try:
+            await provider.robinhood_provider.ensure_authenticated()
+            results.add_result("Robinhood Auth", True, "Authentication successful")
+        except Exception as e:
+            results.add_result("Robinhood Auth", False, f"Auth failed: {e}")
+            return results
+
+        # Test 2: Daily historical data
+        try:
+            result = await provider.robinhood_provider.get_daily_data("AAPL", span="month")
+            
+            if result.get('provider') == 'robinhood' and result.get('data_points', 0) > 0:
+                data_points = result.get('data_points', 0)
+                results.add_result("Daily Historical", True, f"{data_points} daily data points")
+            else:
+                results.add_result("Daily Historical", False, f"Provider: {result.get('provider')}")
+        except Exception as e:
+            results.add_result("Daily Historical", False, f"Error: {e}")
+
+        # Test 3: Intraday data
+        try:
+            result = await provider.robinhood_provider.get_intraday_data("AAPL", "5minute")
+            
+            if result.get('provider') == 'robinhood' and result.get('interval') == '5minute':
+                data_points = result.get('data_points', 0)
+                results.add_result("Intraday Data", True, f"{data_points} 5-minute bars")
+            else:
+                results.add_result("Intraday Data", False, "5-minute data failed")
+        except Exception as e:
+            results.add_result("Intraday Data", False, f"Error: {e}")
+
+        # Test 4: Supported intervals
+        try:
+            result = await provider.get_supported_intervals()
+            
+            if 'supported' in result:
+                intervals = len(result['supported'].get('intervals', {}))
+                spans = len(result['supported'].get('spans', {}))
+                results.add_result("Supported Intervals", True, f"{intervals} intervals, {spans} spans")
+            else:
+                results.add_result("Supported Intervals", False, "No supported intervals")
+        except Exception as e:
+            results.add_result("Supported Intervals", False, f"Error: {e}")
+
+    except Exception as e:
+        results.add_result("Historical Migration", False, f"Import error: {e}")
+
+    return results
+
+
 async def test_options_functionality():
     """Test options functionality (may fail without auth)"""
     results = TestResults()
@@ -245,6 +451,18 @@ async def run_comprehensive_tests():
 
     core_results = await test_core_functionality()
     all_results.append(("Core Functionality", core_results))
+
+    # NEW: Stock quotes migration test
+    stock_results = await test_stock_quotes_migration()
+    all_results.append(("Stock Quotes Migration", stock_results))
+
+    # NEW: Fundamentals migration test
+    fundamentals_results = await test_fundamentals_migration()
+    all_results.append(("Fundamentals Migration", fundamentals_results))
+
+    # NEW: Historical data migration test
+    historical_results = await test_historical_migration()
+    all_results.append(("Historical Data Migration", historical_results))
 
     options_results = await test_options_functionality()
     all_results.append(("Options Functionality", options_results))

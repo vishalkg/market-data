@@ -8,6 +8,9 @@ import aiohttp
 from ..utils.api_keys import ProviderType
 from ..utils.data_optimizers import DataOptimizer
 from .providers import ProviderClient
+from .unified_stock_provider import UnifiedStockProvider
+from .unified_fundamentals_provider import UnifiedFundamentalsProvider
+from .unified_historical_provider import UnifiedHistoricalProvider
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +19,15 @@ class MultiProviderClient(ProviderClient):
     def __init__(self):
         super().__init__()
         self.optimizer = DataOptimizer()
+        self.unified_stock_provider = UnifiedStockProvider()
+        self.unified_fundamentals_provider = UnifiedFundamentalsProvider()
+        self.unified_historical_provider = UnifiedHistoricalProvider()
 
     async def get_quote(
         self, session: aiohttp.ClientSession, symbol: str
     ) -> Dict[str, Any]:
-        """Get real-time stock quote from Finnhub"""
-        return await self.make_request(
-            session, ProviderType.FINNHUB, "quote", {"symbol": symbol}
-        )
+        """Get real-time stock quote: Robinhood primary, Finnhub fallback"""
+        return await self.unified_stock_provider.get_stock_quote(session, symbol)
 
     async def get_options_chain(
         self,
@@ -81,18 +85,8 @@ class MultiProviderClient(ProviderClient):
     async def get_fundamentals(
         self, session: aiohttp.ClientSession, symbol: str
     ) -> Dict[str, Any]:
-        """Get company fundamentals from FMP only (Finnhub profile moved to premium)"""
-        result = await self.make_request(
-            session, ProviderType.FMP, f"profile/{symbol}", {"symbol": symbol}
-        )
-
-        if "error" in result:
-            # No fallback - Finnhub profile is premium only
-            result["details"] = (
-                "FMP failed and Finnhub profile requires premium subscription"
-            )
-
-        return result
+        """Get company fundamentals: Robinhood primary, FMP → Finnhub fallback"""
+        return await self.unified_fundamentals_provider.get_fundamentals(session, symbol)
 
     async def get_rsi(
         self, session: aiohttp.ClientSession, symbol: str, period: int = 14

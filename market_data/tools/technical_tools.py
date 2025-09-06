@@ -91,6 +91,107 @@ def register_technical_tools(mcp: FastMCP, multi_client):
                 return {"error": str(e)}
 
     @mcp.tool()
+    async def get_historical_data_enhanced(symbol: str, interval: str = "day", span: str = "year") -> dict:
+        """Get enhanced historical data with multiple intervals from Robinhood real-time API.
+
+        WHEN TO USE: Technical analysis, backtesting strategies, trend analysis, volatility studies,
+        algorithmic trading development, chart pattern recognition, statistical analysis.
+
+        WHEN NOT TO USE: Real-time prices (use quotes), fundamental analysis (use fundamentals),
+        options analysis (use options chain), basic company info (use fundamentals).
+
+        Robinhood real-time API: Unlimited access to historical data with multiple intervals.
+        Professional-grade OHLCV data used by quantitative analysts and algorithmic traders.
+
+        Args:
+            symbol: Stock ticker symbol (e.g., 'AAPL', 'TSLA')
+            interval: Data interval - '5minute', '10minute', '30minute', 'day', 'week'
+            span: Time span - 'day', 'week', 'month', '3month', 'year', '5year'
+
+        Returns:
+            dict: Historical OHLCV data with timestamps, data points count, interval/span info,
+                  and provider attribution for analysis and backtesting
+
+        Example:
+            get_historical_data_enhanced('AAPL', '5minute', 'day') -> {
+                "provider": "robinhood", "data": [{"timestamp": "...", "open": 239.5, ...}]
+            }
+        """
+        logger.info(f"get_historical_data_enhanced called for {symbol} ({interval}, {span})")
+
+        try:
+            result = await multi_client.unified_historical_provider.get_historical_data(
+                symbol, interval, span
+            )
+            logger.info(f"Enhanced historical data retrieved for {symbol}")
+            return result
+        except Exception as e:
+            logger.error(f"Error getting enhanced historical data for {symbol}: {e}")
+            return {"error": str(e)}
+
+    @mcp.tool()
+    async def get_intraday_data(symbol: str, interval: str = "5minute") -> dict:
+        """Get intraday historical data for day trading and short-term analysis.
+
+        WHEN TO USE: Day trading strategies, intraday pattern analysis, scalping algorithms,
+        short-term volatility studies, real-time backtesting, minute-level analysis.
+
+        WHEN NOT TO USE: Long-term analysis (use daily data), fundamental research,
+        options strategies, overnight position analysis.
+
+        High-frequency data: 5-minute, 10-minute, or 30-minute intervals for current trading day.
+        Professional intraday data used by day traders and high-frequency trading systems.
+
+        Args:
+            symbol: Stock ticker symbol (e.g., 'AAPL', 'TSLA')
+            interval: Intraday interval - '5minute', '10minute', '30minute'
+
+        Returns:
+            dict: Intraday OHLCV data with minute-level precision for day trading analysis
+
+        Example:
+            get_intraday_data('AAPL', '5minute') -> {
+                "provider": "robinhood", "interval": "5minute", "data": [...]
+            }
+        """
+        logger.info(f"get_intraday_data called for {symbol} ({interval})")
+
+        try:
+            result = await multi_client.unified_historical_provider.get_intraday_data(
+                symbol, interval
+            )
+            logger.info(f"Intraday data retrieved for {symbol}")
+            return result
+        except Exception as e:
+            logger.error(f"Error getting intraday data for {symbol}: {e}")
+            return {"error": str(e)}
+
+    @mcp.tool()
+    async def get_supported_intervals() -> dict:
+        """Get supported historical data intervals and time spans.
+
+        WHEN TO USE: API capability discovery, parameter validation, system integration,
+        data availability planning, interval selection guidance.
+
+        Returns:
+            dict: Supported intervals, spans, and valid combinations for historical data requests
+
+        Example:
+            get_supported_intervals() -> {
+                "intervals": {"5minute": "...", "day": "..."}, "spans": {...}, "combinations": [...]
+            }
+        """
+        logger.info("get_supported_intervals called")
+
+        try:
+            result = await multi_client.unified_historical_provider.get_supported_intervals()
+            logger.info("Supported intervals retrieved")
+            return result
+        except Exception as e:
+            logger.error(f"Error getting supported intervals: {e}")
+            return {"error": str(e)}
+
+    @mcp.tool()
     async def get_market_status() -> dict:
         """Get real-time market status for trading timing, data availability, and operational decisions.
 
