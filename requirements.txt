@@ -1,0 +1,4 @@
+fastmcp
+aiohttp
+boto3
+robin-stocks
