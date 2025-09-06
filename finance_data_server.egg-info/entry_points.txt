@@ -1,2 +1,0 @@
-[console_scripts]
-finance-server = finance_data_server.server:main

@@ -226,7 +226,7 @@ Before starting development:
 - **Options Market Data Function**: http://www.robin-stocks.com/en/latest/_modules/robin_stocks/robinhood/options.html
 
 ### Current Provider Research
-- **API Comparison Document**: `/Users/guvishl/MyNotes/finance-data-server/API Suggestions (Detailed).md`
+- **API Comparison Document**: `/Users/guvishl/MyNotes/market-data/API Suggestions (Detailed).md`
 - **Finnhub**: Free tier 60 req/min, options chains available
 - **Alpha Vantage**: Options data PAID-ONLY on free tier
 - **FMP**: Real-time quotes PAID-ONLY, 250 req/day limit
@@ -286,7 +286,7 @@ Before starting development:
 
 ## 📁 Final Project Structure
 ```
-finance-data-server/
+market-data/
 ├── src/
 │   ├── auth/              # Authentication modules
 │   │   ├── robinhood_auth.py

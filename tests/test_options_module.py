@@ -6,7 +6,7 @@ Tests options functionality with real API calls
 
 import asyncio
 
-from finance_data_server.providers.unified_options_provider import (
+from market_data.providers.unified_options_provider import (
     UnifiedOptionsProvider,
 )
 

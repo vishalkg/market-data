@@ -6,8 +6,8 @@ Tests Robinhood authentication and credential management
 
 import asyncio
 
-from finance_data_server.auth.robinhood_auth import RobinhoodAuth
-from finance_data_server.providers.unified_options_provider import (
+from market_data.auth.robinhood_auth import RobinhoodAuth
+from market_data.providers.unified_options_provider import (
     UnifiedOptionsProvider,
 )
 

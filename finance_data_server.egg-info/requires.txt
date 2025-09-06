@@ -1,5 +1,0 @@
-fastmcp
-aiohttp
-robin-stocks
-boto3
-cryptography

@@ -8,7 +8,7 @@ from pathlib import Path
 # Lazy imports - only import when needed
 
 # Setup enhanced logging
-log_file = os.path.join(os.path.dirname(__file__), "..", "finance-data-server.log")
+log_file = os.path.join(os.path.dirname(__file__), "..", "market-data.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Log startup
 logger.info("=" * 60)
-logger.info("Starting Enhanced Finance Data MCP Server...")
+logger.info("Starting Enhanced Market Data MCP Server...")
 logger.info(f"Log file: {log_file}")
 logger.info("=" * 60)
 

@@ -6,7 +6,7 @@ Tests MCP server integration and tool functionality
 
 import asyncio
 
-from finance_data_server.server import create_server
+from market_data.server import create_server
 
 
 async def run_integration_tests(runner):

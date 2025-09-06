@@ -78,7 +78,7 @@ async def run_modular_test_suite():
     """Run the complete modular test suite"""
 
     print("🧪 COMPREHENSIVE MODULAR TEST SUITE")
-    print("Testing all finance data server functionality with real API calls")
+    print("Testing all market data server functionality with real API calls")
 
     runner = TestSuiteRunner()
     start_time = time.time()

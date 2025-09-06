@@ -29,3 +29,5 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+# Exclude Robinhood strategy document
+ROBINHOOD_OPTIONS_STRATEGY.md

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-One-Click E2E Test Suite for Finance Data Server
+One-Click E2E Test Suite for Market Data Server
 Run this after any code changes to verify functionality
 """
 
@@ -65,14 +65,14 @@ async def test_package_imports():
     print_section("PACKAGE IMPORT TESTS")
 
     try:
-        from finance_data_server.server import create_server
+        from market_data.server import create_server
 
         results.add_result("Server Import", True, "Main server module imported")
     except Exception as e:
         results.add_result("Server Import", False, f"Error: {e}")
 
     try:
-        from finance_data_server.providers.unified_options_provider import (
+        from market_data.providers.unified_options_provider import (
             UnifiedOptionsProvider,
         )
 
@@ -83,14 +83,14 @@ async def test_package_imports():
         results.add_result("Options Provider Import", False, f"Error: {e}")
 
     try:
-        from finance_data_server.auth.robinhood_auth import RobinhoodAuth
+        from market_data.auth.robinhood_auth import RobinhoodAuth
 
         results.add_result("Auth Import", True, "Authentication module imported")
     except Exception as e:
         results.add_result("Auth Import", False, f"Error: {e}")
 
     try:
-        from finance_data_server.providers.market_client import MultiProviderClient
+        from market_data.providers.market_client import MultiProviderClient
 
         results.add_result("Market Client Import", True, "Market client imported")
     except Exception as e:
@@ -106,7 +106,7 @@ async def test_core_functionality():
     print_section("CORE FUNCTIONALITY TESTS")
 
     try:
-        from finance_data_server.server import create_server
+        from market_data.server import create_server
 
         server = create_server()
         results.add_result(
@@ -117,7 +117,7 @@ async def test_core_functionality():
         return results
 
     try:
-        from finance_data_server.providers.unified_options_provider import (
+        from market_data.providers.unified_options_provider import (
             UnifiedOptionsProvider,
         )
 
@@ -141,7 +141,7 @@ async def test_options_functionality():
     print_section("OPTIONS FUNCTIONALITY TESTS")
 
     try:
-        from finance_data_server.providers.unified_options_provider import (
+        from market_data.providers.unified_options_provider import (
             UnifiedOptionsProvider,
         )
 
@@ -195,11 +195,11 @@ async def test_file_structure():
 
     # Check key directories
     expected_dirs = [
-        "finance_data_server",
-        "finance_data_server/auth",
-        "finance_data_server/providers",
-        "finance_data_server/tools",
-        "finance_data_server/utils",
+        "market_data",
+        "market_data/auth",
+        "market_data/providers",
+        "market_data/tools",
+        "market_data/utils",
         "tests",
     ]
 
@@ -211,9 +211,9 @@ async def test_file_structure():
 
     # Check key files
     key_files = [
-        "finance_data_server/server.py",
-        "finance_data_server/providers/unified_options_provider.py",
-        "finance_data_server/auth/robinhood_auth.py",
+        "market_data/server.py",
+        "market_data/providers/unified_options_provider.py",
+        "market_data/auth/robinhood_auth.py",
         "setup.py",
         "start.sh",
     ]
@@ -230,7 +230,7 @@ async def test_file_structure():
 async def run_comprehensive_tests():
     """Run all tests and provide comprehensive report"""
 
-    print_header("FINANCE DATA SERVER - COMPREHENSIVE E2E TEST SUITE")
+    print_header("MARKET DATA SERVER - COMPREHENSIVE E2E TEST SUITE")
     print("One-click solution to verify system functionality after changes")
 
     start_time = time.time()

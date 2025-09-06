@@ -3,9 +3,9 @@
 from setuptools import find_packages, setup
 
 setup(
-    name="finance-data-server",
+    name="market-data",
     version="1.0.0",
-    description="Enhanced Finance Data MCP Server with Robinhood Options Integration",
+    description="Enhanced Market Data MCP Server with Robinhood Options Integration",
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=[
@@ -17,7 +17,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "finance-server=finance_data_server.server:main",
+            "market-server=market_data.server:main",
         ],
     },
 )

@@ -8,7 +8,7 @@ import asyncio
 
 import aiohttp
 
-from finance_data_server.providers.market_client import MultiProviderClient
+from market_data.providers.market_client import MultiProviderClient
 
 
 async def run_market_data_tests(runner):

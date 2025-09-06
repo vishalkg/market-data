@@ -1,4 +1,4 @@
-# Enhanced Finance Data MCP Server
+# Enhanced Market Data MCP Server
 
 A Model Context Protocol (MCP) server that provides reliable, always-available real-time stock market data and options trading information with unlimited Robinhood options data and professional optimization.
 
@@ -25,7 +25,7 @@ python run_tests.py
 ./start.sh
 
 # Or run directly
-python -m finance_data_server.server
+python -m market_data.server
 ```
 
 *The server runs in stdio mode for MCP protocol communication - no port conflicts!*
@@ -83,12 +83,12 @@ The system includes a comprehensive test suite that validates all functionality 
 
 1. **Make start script executable**:
    ```bash
-   chmod +x ~/.mcp/finance-data-server/start.sh
+   chmod +x ~/.mcp/market-data/start.sh
    ```
 
 2. **Add to Q CLI MCP configuration**:
    ```bash
-   qchat mcp add --name finance-data --command ~/.mcp/finance-data-server/start.sh
+   qchat mcp add --name market-data --command ~/.mcp/market-data/start.sh
    ```
 
 3. **Test**:

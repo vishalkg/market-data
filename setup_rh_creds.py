@@ -3,7 +3,7 @@
 import getpass
 import sys
 
-from finance_data_server.auth.robinhood_auth import RobinhoodAuth
+from market_data.auth.robinhood_auth import RobinhoodAuth
 
 
 def setup_credentials():
