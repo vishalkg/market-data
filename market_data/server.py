@@ -40,7 +40,7 @@ def create_server():
     from .tools.technical_tools import register_technical_tools
 
     # Initialize MCP server and multi-provider client
-    mcp = FastMCP("Finance Data Server")
+    mcp = FastMCP("Market Data Server")
     logger.info("✅ FastMCP server created")
 
     logger.info("🔧 Initializing multi-provider client...")
@@ -60,7 +60,7 @@ def create_server():
     register_technical_tools(mcp, multi_client)
     logger.info("✅ Technical tools registered")
 
-    logger.info("🎉 Enhanced Finance Data MCP Server configured successfully")
+    logger.info("🎉 Enhanced Market Data MCP Server configured successfully")
     logger.info("🌐 Server ready to accept connections")
     return mcp
 
