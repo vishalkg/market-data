@@ -151,6 +151,31 @@ class RobinhoodOptionsProvider:
                 f"✅ Retrieved {len(options_data)} raw options in {options_elapsed:.2f}s"
             )
 
+            # OPTIMIZATION: Apply professional filtering BEFORE formatting to reduce processing
+            if not raw_data:
+                logger.info(f"🔍 Pre-filtering {len(options_data)} options for professional analysis")
+                filter_start = time.time()
+                
+                # Get current stock price for ATM filtering
+                try:
+                    current_price_data = rh.get_latest_price(symbol)
+                    current_price = float(current_price_data[0]) if current_price_data else None
+                except:
+                    current_price = None
+                
+                if current_price:
+                    # Pre-filter options to reduce formatting overhead
+                    filtered_raw_options = self._pre_filter_raw_options(options_data, current_price)
+                    filter_elapsed = time.time() - filter_start
+                    
+                    logger.info(
+                        f"🎯 Pre-filtered: {len(options_data)} -> {len(filtered_raw_options)} options "
+                        f"({(1 - len(filtered_raw_options)/len(options_data))*100:.1f}% reduction) in {filter_elapsed:.2f}s"
+                    )
+                    options_data = filtered_raw_options
+                else:
+                    logger.warning("Could not get current price for pre-filtering, processing all options")
+
             # Format options data with parallel processing for large datasets
             logger.info(f"🔄 Formatting {len(options_data)} options data")
             format_start = time.time()
@@ -165,12 +190,12 @@ class RobinhoodOptionsProvider:
             format_elapsed = time.time() - format_start
             logger.info(f"✅ Formatted options in {format_elapsed:.2f}s")
 
-            # Enhance with Greeks if requested
-            if include_greeks:
-                formatted_options = self._enhance_with_greeks(formatted_options)
-
-            # If raw data requested, return everything
+            # If raw data requested, return everything (skip professional filtering)
             if raw_data:
+                # Enhance with Greeks if requested (for raw data)
+                if include_greeks:
+                    formatted_options = self._enhance_with_greeks(formatted_options)
+                
                 calls = [
                     opt for opt in formatted_options if opt["option_type"] == "call"
                 ]
@@ -192,14 +217,76 @@ class RobinhoodOptionsProvider:
                     "greeks_included": include_greeks,
                 }
 
-            # Default: Summarized data
-            return self._summarize_options_chain(
-                formatted_options, symbol, expiration, max_expirations, include_greeks
+            # Default: Apply professional summarization BEFORE Greeks
+            summarized_result = self._summarize_options_chain(
+                formatted_options, symbol, expiration, max_expirations, greeks_included=False
             )
+            
+            # Enhance with Greeks AFTER professional filtering (only for final filtered options)
+            if include_greeks and 'expirations' in summarized_result:
+                logger.info(f"🔢 Fetching Greeks for final filtered options")
+                
+                # Collect all options from all expirations
+                all_filtered_options = []
+                for exp_date, exp_data in summarized_result['expirations'].items():
+                    all_filtered_options.extend(exp_data.get('calls', []))
+                    all_filtered_options.extend(exp_data.get('puts', []))
+                
+                if all_filtered_options:
+                    enhanced_options = self._enhance_with_greeks(all_filtered_options)
+                    
+                    # Split back into calls and puts by expiration
+                    enhanced_by_exp = {}
+                    for option in enhanced_options:
+                        exp_date = option['expiration']
+                        if exp_date not in enhanced_by_exp:
+                            enhanced_by_exp[exp_date] = {'calls': [], 'puts': []}
+                        
+                        if option['option_type'] == 'call':
+                            enhanced_by_exp[exp_date]['calls'].append(option)
+                        else:
+                            enhanced_by_exp[exp_date]['puts'].append(option)
+                    
+                    # Update the result with enhanced options
+                    for exp_date in summarized_result['expirations']:
+                        if exp_date in enhanced_by_exp:
+                            summarized_result['expirations'][exp_date]['calls'] = enhanced_by_exp[exp_date]['calls']
+                            summarized_result['expirations'][exp_date]['puts'] = enhanced_by_exp[exp_date]['puts']
+                    
+                    summarized_result['greeks_included'] = True
+            
+            return summarized_result
 
         except Exception as e:
             logger.error(f"Error fetching options chain for {symbol}: {e}")
             return {"error": str(e), "provider": "robinhood"}
+
+    def _pre_filter_raw_options(self, raw_options: List[Dict], current_price: float) -> List[Dict]:
+        """Pre-filter raw options data to reduce formatting overhead"""
+        if not current_price:
+            return raw_options
+        
+        # Define ATM range (±15% of current price)
+        atm_range = 0.15
+        min_strike = current_price * (1 - atm_range)
+        max_strike = current_price * (1 + atm_range)
+        
+        filtered_options = []
+        
+        for option in raw_options:
+            try:
+                # Extract strike price from the raw option data
+                strike = float(option.get('strike_price', 0))
+                
+                # Keep options within ATM range
+                if min_strike <= strike <= max_strike:
+                    filtered_options.append(option)
+                    
+            except (ValueError, TypeError):
+                # Keep options with invalid strike data for safety
+                filtered_options.append(option)
+        
+        return filtered_options
 
     def _enhance_with_greeks(self, options_data: List[Dict]) -> List[Dict]:
         """Enhance options data with Greeks from market data - OPTIMIZED PARALLEL"""
@@ -290,7 +377,7 @@ class RobinhoodOptionsProvider:
         symbol: str,
         expiration_filter: Optional[str],
         max_expirations: int,
-        greeks_included: bool = True,
+        greeks_included: bool = False,
     ) -> Dict[str, Any]:
         """Professional-grade options chain optimization focusing on tradeable options"""
 

@@ -385,6 +385,94 @@ async def test_options_functionality():
                 "Fallback System", False, "Should have failed for invalid symbol"
             )
 
+        # Test 4: Options performance optimization
+        try:
+            from market_data.providers.robinhood_options import RobinhoodOptionsProvider
+            provider = RobinhoodOptionsProvider()
+            
+            # Test pre-filtering method
+            mock_options = [
+                {"strike_price": "100.0"},  # Too low
+                {"strike_price": "200.0"},  # ATM range
+                {"strike_price": "220.0"},  # ATM range  
+                {"strike_price": "300.0"},  # Too high
+            ]
+            current_price = 210.0
+            
+            filtered = provider._pre_filter_raw_options(mock_options, current_price)
+            
+            if len(filtered) == 2:  # Should keep 200 and 220
+                results.add_result("Options Pre-filtering", True, f"Filtered {len(mock_options)} -> {len(filtered)} options")
+            else:
+                results.add_result("Options Pre-filtering", False, f"Expected 2, got {len(filtered)}")
+        except Exception as e:
+            results.add_result("Options Pre-filtering", False, f"Error: {e}")
+
+        # Test 5: Professional filtering flow validation
+        try:
+            # Test with include_greeks=True to verify the full flow
+            result = provider.get_options_chain(
+                "AAPL", max_expirations=1, include_greeks=True
+            )
+            
+            if "error" not in result:
+                # Debug: Print result structure to understand what we're getting
+                print(f"DEBUG: Result keys: {list(result.keys())}")
+                if "optimization_summary" in result:
+                    print(f"DEBUG: Optimization summary: {result['optimization_summary']}")
+                
+                # Check that professional filtering happened
+                if "optimization_summary" in result:
+                    summary = result["optimization_summary"]
+                    # Use the correct key names from the actual response
+                    total_before = summary.get("total_options_before_filter", 0)
+                    total_after = summary.get("total_options_after_filter", 0)
+                    
+                    # Verify significant reduction (should be >90% for professional filtering)
+                    if total_before > 0 and total_after > 0:
+                        reduction_pct = (1 - total_after/total_before) * 100
+                        if reduction_pct > 90:  # Professional filtering should achieve >90% reduction
+                            results.add_result("Professional Filtering Flow", True, 
+                                f"Professional filter: {total_before} -> {total_after} ({reduction_pct:.1f}% reduction)")
+                        else:
+                            results.add_result("Professional Filtering Flow", False, 
+                                f"Insufficient reduction: {reduction_pct:.1f}% (expected >90%)")
+                    else:
+                        results.add_result("Professional Filtering Flow", False, 
+                            f"Invalid reduction data: before={total_before}, after={total_after}")
+                else:
+                    results.add_result("Professional Filtering Flow", False, "No optimization summary found")
+                
+                # Verify Greeks are included in final result
+                greeks_included = result.get("greeks_included", False)
+                print(f"DEBUG: Greeks included flag: {greeks_included}")
+                
+                if greeks_included:
+                    results.add_result("Greeks After Filtering", True, "Greeks fetched for filtered options")
+                else:
+                    # Check if any options actually have Greeks data
+                    has_greeks = False
+                    for option_type in ['calls', 'puts']:
+                        if option_type in result:
+                            for option in result[option_type][:3]:  # Check first 3 options
+                                if any(key in option for key in ['delta', 'gamma', 'theta', 'vega']):
+                                    has_greeks = True
+                                    break
+                            if has_greeks:
+                                break
+                    
+                    if has_greeks:
+                        results.add_result("Greeks After Filtering", True, "Greeks data found in options")
+                    else:
+                        results.add_result("Greeks After Filtering", False, "No Greeks data in options")
+            else:
+                results.add_result("Professional Filtering Flow", False, f"Options error: {result['error']}")
+                results.add_result("Greeks After Filtering", False, f"Options error: {result['error']}")
+                
+        except Exception as e:
+            results.add_result("Professional Filtering Flow", False, f"Error: {e}")
+            results.add_result("Greeks After Filtering", False, f"Error: {e}")
+
         provider.logout()
 
     except Exception as e:
