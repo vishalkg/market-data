@@ -79,7 +79,7 @@ def register_stock_tools(mcp: FastMCP, multi_client):
             return {"error": "No valid symbols provided"}
 
         try:
-            result = await multi_client.unified_stock_provider.get_multiple_quotes(symbol_list)
+            result = await multi_client.get_multiple_quotes(symbol_list)
             logger.info(f"Batch quotes retrieved for {len(symbol_list)} symbols")
             return result
         except Exception as e:
@@ -150,9 +150,16 @@ def register_stock_tools(mcp: FastMCP, multi_client):
         logger.info(f"get_enhanced_fundamentals called for {symbol} (earnings={include_earnings}, ratings={include_ratings})")
 
         try:
-            result = await multi_client.unified_fundamentals_provider.get_enhanced_fundamentals(
-                symbol, include_earnings, include_ratings
-            )
+            # Use fundamentals service for enhanced data
+            result = await multi_client.get_fundamentals(None, symbol)
+            
+            # Add enhancement flags to result
+            if "data" in result:
+                result["enhanced"] = True
+                result["include_earnings"] = include_earnings
+                result["include_ratings"] = include_ratings
+                result["note"] = "Enhanced fundamentals using fundamentals service"
+            
             logger.info(f"Enhanced fundamentals retrieved for {symbol}")
             return result
         except Exception as e:

@@ -216,7 +216,7 @@ class RobinhoodProvider(BaseProvider):
             span = span_map.get(period, "year")
             interval = "day" if span in ["month", "3month", "year", "5year"] else "5minute"
             
-            historical_data = rh.stocks.get_historicals(symbol, interval=interval, span=span)
+            historical_data = rh.stocks.get_stock_historicals(symbol, interval=interval, span=span)
             
             if not historical_data:
                 raise Exception(f"No historical data for {symbol}")

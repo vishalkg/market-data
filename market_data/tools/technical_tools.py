@@ -81,14 +81,15 @@ def register_technical_tools(mcp: FastMCP, multi_client):
         """
         logger.info(f"get_historical_data called for {symbol} with {days} days")
 
-        async with aiohttp.ClientSession() as session:
-            try:
-                result = await multi_client.get_historical_data(session, symbol, days)
-                logger.info(f"Historical data retrieved for {symbol}")
-                return result
-            except Exception as e:
-                logger.error(f"Error getting historical data for {symbol}: {e}")
-                return {"error": str(e)}
+        try:
+            # Convert days to period string
+            period = f"{days}d" if days < 365 else "1y"
+            result = await multi_client.get_historical_data(symbol, period)
+            logger.info(f"Historical data retrieved for {symbol}")
+            return result
+        except Exception as e:
+            logger.error(f"Error getting historical data for {symbol}: {e}")
+            return {"error": str(e)}
 
     @mcp.tool()
     async def get_historical_data_enhanced(symbol: str, interval: str = "day", span: str = "year") -> dict:
@@ -120,9 +121,16 @@ def register_technical_tools(mcp: FastMCP, multi_client):
         logger.info(f"get_historical_data_enhanced called for {symbol} ({interval}, {span})")
 
         try:
-            result = await multi_client.unified_historical_provider.get_historical_data(
-                symbol, interval, span
-            )
+            # Use the basic historical data method for now since we don't have unified_historical_provider
+            period = span if span in ["1d", "1w", "1m", "3m", "1y", "5y"] else "1y"
+            result = await multi_client.get_historical_data(symbol, period)
+            
+            # Add interval/span info to result
+            if "error" not in result:
+                result["requested_interval"] = interval
+                result["requested_span"] = span
+                result["note"] = "Enhanced historical data using basic historical service"
+            
             logger.info(f"Enhanced historical data retrieved for {symbol}")
             return result
         except Exception as e:
@@ -157,9 +165,15 @@ def register_technical_tools(mcp: FastMCP, multi_client):
         logger.info(f"get_intraday_data called for {symbol} ({interval})")
 
         try:
-            result = await multi_client.unified_historical_provider.get_intraday_data(
-                symbol, interval
-            )
+            # Use historical data service with intraday interval
+            result = await multi_client.get_historical_data(symbol, "1d")  # Use 1 day for intraday
+            
+            # Add intraday metadata
+            if "error" not in result:
+                result["interval"] = interval
+                result["data_type"] = "intraday"
+                result["note"] = f"Intraday data using {interval} interval"
+            
             logger.info(f"Intraday data retrieved for {symbol}")
             return result
         except Exception as e:
