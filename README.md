@@ -4,19 +4,21 @@ A Model Context Protocol (MCP) server providing **unlimited access** to real-tim
 
 ## 🚀 Quick Start
 
-### 1. Setup Authentication (Recommended for Full Features)
+### MCP Server (Primary)
+
+#### 1. Setup Authentication (Recommended for Full Features)
 ```bash
 python setup_rh_creds.py
 ```
 *Enables unlimited Robinhood data access. System works with fallback providers if skipped.*
 
-### 2. Run Comprehensive Tests
+#### 2. Run Comprehensive Tests
 ```bash
-# One-click comprehensive test suite (31 tests)
+# One-click comprehensive test suite (34 tests)
 python run_all_tests.py
 ```
 
-### 3. Start the Server
+#### 3. Start the Server
 ```bash
 # Start MCP server in stdio mode
 ./start.sh
@@ -25,7 +27,34 @@ python run_all_tests.py
 python -m market_data.server
 ```
 
+### Web Interface (Alternative Access)
+
+Access market data tools via HTTPS from any device (desktop/mobile) when MCP integration is unavailable.
+
+```bash
+# Prepare for deployment
+./deploy.sh
+
+# Deploy to AWS (follow prompts)
+cd cdk
+npx cdk bootstrap --profile YOUR_PROFILE
+npx cdk deploy --profile YOUR_PROFILE
+```
+
+**Features:**
+- 🌐 HTTPS endpoint with AWS-managed SSL
+- 🔐 Token-based authentication
+- 📱 Works on desktop and mobile
+- 💰 ~$0.50/month cost
+- 🎯 All 14 MCP tools available
+
+See [README-webtool.md](README-webtool.md) for detailed web interface documentation.
+
 ## 🎯 Key Features
+
+### Dual Access Modes
+- **MCP Server**: Native integration with Q CLI and MCP clients
+- **Web Interface**: HTTPS endpoint for browser-based access from any device
 
 ### Unlimited Data Access (Robinhood Primary)
 - **Stock Quotes**: Unlimited vs 180/min (∞% improvement) + batch processing
