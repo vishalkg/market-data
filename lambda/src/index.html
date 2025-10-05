@@ -147,14 +147,22 @@
         .result-container {
             background: #f8f9fa;
             border-radius: 8px;
-            padding: 20px;
+            padding: 0;
             max-height: 500px;
-            overflow-y: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .result-header {
             display: flex;
             justify-content: flex-end;
+            padding: 15px 20px 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .copy-btn {
@@ -178,13 +186,16 @@
             background: #2d3748;
             color: #e2e8f0;
             padding: 20px;
+            margin: 0 20px 20px 20px;
             border-radius: 6px;
             font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.6;
+            overflow-y: auto;
             overflow-x: auto;
             white-space: pre-wrap;
             word-wrap: break-word;
+            flex: 1;
         }
 
         .result-output.error {
