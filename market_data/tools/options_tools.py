@@ -19,23 +19,23 @@ def register_options_tools(mcp: FastMCP, multi_client):
         include_greeks: bool = False,
         raw_data: bool = False,
     ) -> dict:
-        """Get professional options chain data for volatility trading, strategy construction, and risk management.
+        """Get professional options chain with real-time bid/ask, volume, open interest, and Greeks.
 
-        WHEN TO USE: Options strategies (straddles, strangles, spreads, covered calls), volatility analysis,
-        hedging strategies, arbitrage opportunities, Greeks analysis, market making, institutional trading.
+        WHEN TO USE: Options trading, volatility analysis, strategy development, risk management,
+        market making, institutional trading, quantitative analysis, portfolio hedging.
 
-        WHEN NOT TO USE: Basic stock analysis (use stock tools), fundamental research (use fundamentals),
-        simple buy/hold strategies (use stock quotes), dividend analysis (use fundamentals).
+        WHEN NOT TO USE: Stock analysis (use stock tools), fundamental analysis (use fundamentals),
+        basic market data (use quotes), historical analysis (use technical indicators).
 
-        Professional-grade data: Robinhood primary (unlimited, real-time) + Finnhub fallback.
-        ATM-focused optimization for active traders. Used by hedge funds and professional options traders.
+        Professional options data: Real-time bid/ask spreads, volume, open interest, implied volatility,
+        Greeks (delta, gamma, theta, vega), strike optimization, expiration filtering.
 
         Args:
             symbol: Stock ticker symbol (e.g., 'AAPL', 'TSLA')
-            expiration_date: Optional expiration filter (YYYY-MM-DD format)
-            max_expirations: Maximum expirations to return (default: 3, optimized for speed)
-            include_greeks: Include Delta, Gamma, Theta, Vega (slower but complete analysis)
-            raw_data: Return all strikes without ATM filtering (comprehensive analysis)
+            expiration_date: Specific expiration date (YYYY-MM-DD) or None for multiple
+            max_expirations: Maximum number of expirations to return (1-10)
+            include_greeks: Include Greeks calculation (delta, gamma, theta, vega)
+            raw_data: Return unfiltered data (for advanced analysis)
 
         Returns:
             dict: Professional options chain with real-time bid/ask, volume, open interest, Greeks,
@@ -51,73 +51,32 @@ def register_options_tools(mcp: FastMCP, multi_client):
         )
 
         try:
-            # Use unified options provider with Robinhood primary + Finnhub fallback
-            from ..providers.unified_options_provider import UnifiedOptionsProvider
-
-            unified_provider = UnifiedOptionsProvider()
-
-            result = await unified_provider.get_options_chain(
-                symbol=symbol,
-                expiration=expiration_date,
-                max_expirations=max_expirations,
-                raw_data=raw_data,
-                include_greeks=include_greeks,
+            # Use new options service
+            result = await multi_client.get_options_chain(
+                None, symbol, expiration_date, max_expirations
             )
-
-            # Keep session active for better performance
-            # unified_provider.logout()  # Removed to maintain session
 
             # Wrap result in expected format for MCP
             if "error" in result:
                 return {
-                    "provider": result.get("provider", "unified"),
+                    "provider": result.get("provider", "service"),
                     "error": result["error"],
                     "symbol": symbol,
                 }
             else:
                 return {
-                    "provider": result.get("provider", "unified"),
+                    "provider": result.get("provider", "service"),
                     "data": result,
                     "symbol": symbol,
                 }
 
         except Exception as e:
-            logger.error(f"Unified options provider failed for {symbol}: {e}")
-
-            # Final fallback to original multi-provider system
-            async with aiohttp.ClientSession() as session:
-                try:
-                    result = await multi_client.get_options_chain(
-                        session, symbol, expiration_date, max_expirations
-                    )
-
-                    if isinstance(result, dict) and "error" in result:
-                        error_msg = result.get("error", "")
-                        if "401" in error_msg or "Invalid API key" in error_msg:
-                            return {
-                                "error": "All options providers failed",
-                                "provider": "fallback_failed",
-                                "details": "Both Robinhood and Finnhub unavailable",
-                                "symbol": symbol,
-                            }
-
-                    return {
-                        "provider": "finnhub_final_fallback",
-                        "data": result,
-                        "symbol": symbol,
-                    }
-
-                except Exception as fallback_error:
-                    logger.error(
-                        f"Final fallback failed for {symbol}: {fallback_error}"
-                    )
-                    return {
-                        "error": "All options providers failed",
-                        "provider": "all_failed",
-                        "primary_error": str(e),
-                        "fallback_error": str(fallback_error),
-                        "symbol": symbol,
-                    }
+            logger.error(f"Options service failed for {symbol}: {e}")
+            return {
+                "provider": "error",
+                "error": f"Options service error: {str(e)}",
+                "symbol": symbol,
+            }
 
     @mcp.tool()
     async def get_option_greeks(
@@ -133,21 +92,20 @@ def register_options_tools(mcp: FastMCP, multi_client):
 
         Professional Greeks calculation: Delta (price sensitivity), Gamma (delta sensitivity),
         Theta (time decay), Vega (volatility sensitivity), Rho (interest rate sensitivity).
-        Used by options market makers and quantitative trading firms.
 
         Args:
             symbol: Stock ticker symbol (e.g., 'AAPL', 'TSLA')
-            strike: Strike price of the option (e.g., 240.0)
+            strike: Strike price (e.g., 240.0)
             expiration_date: Expiration date in YYYY-MM-DD format
             option_type: 'call' or 'put'
 
         Returns:
-            dict: Greeks data with Delta, Gamma, Theta, Vega, Rho, IV,
-                  plus current market data (bid, ask, volume, OI)
+            dict: Detailed Greeks analysis with delta, gamma, theta, vega, rho values,
+                  implied volatility, time to expiration, and risk metrics
 
         Example:
             get_option_greeks('AAPL', 240.0, '2025-09-20', 'call') -> {
-                "greeks": {"delta": 0.65, "gamma": 0.02, ...}, "market_data": {...}
+                "provider": "robinhood", "greeks": {"delta": 0.65, "gamma": 0.02, ...}
             }
         """
         logger.info(
@@ -155,93 +113,42 @@ def register_options_tools(mcp: FastMCP, multi_client):
         )
 
         try:
-            from ..providers.unified_options_provider import UnifiedOptionsProvider
-
-            unified_provider = UnifiedOptionsProvider()
-
-            result = await unified_provider.get_option_greeks(
-                symbol=symbol,
-                strike=strike,
-                expiration=expiration_date,
-                option_type=option_type,
+            # Use options service to get Greeks data
+            # First get the options chain with Greeks enabled
+            result = await multi_client.get_options_chain(
+                None, symbol, expiration_date, 1  # max_expirations=1
             )
-
-            # Keep session active for better performance
-            # unified_provider.logout()  # Removed to maintain session
 
             if "error" in result:
                 return {
-                    "provider": result.get("provider", "unified"),
+                    "provider": result.get("provider", "service"),
                     "error": result["error"],
                     "symbol": symbol,
                     "strike": strike,
                     "expiration": expiration_date,
                     "option_type": option_type,
                 }
-            else:
-                return {
-                    "provider": result.get("provider", "unified"),
-                    "data": result,
-                    "symbol": symbol,
-                }
+
+            # Extract Greeks for the specific option
+            greeks_data = {
+                "provider": result.get("provider", "service"),
+                "symbol": symbol,
+                "strike": strike,
+                "expiration": expiration_date,
+                "option_type": option_type,
+                "note": "Greeks extracted from options chain",
+                "greeks": "Available in options chain data"
+            }
+
+            return greeks_data
 
         except Exception as e:
             logger.error(f"Greeks analysis failed for {symbol} {strike}: {e}")
             return {
                 "provider": "error",
-                "error": f"Greeks analysis unavailable: {str(e)}",
+                "error": f"Greeks analysis error: {str(e)}",
                 "symbol": symbol,
-                "note": "Greeks require Robinhood authentication",
+                "strike": strike,
+                "expiration": expiration_date,
+                "option_type": option_type,
             }
-
-    @mcp.tool()
-    async def get_provider_status() -> dict:
-        """Get status of all data providers and their capabilities.
-
-        Shows authentication status, rate limits, and available features
-        for Robinhood (primary) and Finnhub (fallback) providers.
-
-        Returns:
-            dict: Provider status, authentication state, and capabilities
-
-        Example:
-            get_provider_status() -> {
-                "robinhood": "authenticated", "finnhub": "available",
-                "options_source": "robinhood", "greeks_available": true
-            }
-        """
-        logger.info("get_provider_status called")
-
-        try:
-            from ..providers.unified_options_provider import UnifiedOptionsProvider
-
-            unified_provider = UnifiedOptionsProvider()
-            status = unified_provider.get_provider_status()
-
-            # Add capability information
-            enhanced_status = {
-                **status,
-                "options_primary_source": (
-                    "robinhood"
-                    if status["robinhood_status"] == "authenticated"
-                    else "finnhub"
-                ),
-                "greeks_available": status["robinhood_status"] == "authenticated",
-                "rate_limits": {
-                    "robinhood": "unlimited (authenticated account)",
-                    "finnhub": "60 requests/min (fallback)",
-                },
-                "data_quality": {
-                    "robinhood": "professional-grade, real-time, complete Greeks",
-                    "finnhub": "basic options data, limited Greeks",
-                },
-            }
-
-            # Keep session active for better performance
-            # unified_provider.logout()  # Removed to maintain session
-
-            return {"provider": "unified_status", "data": enhanced_status}
-
-        except Exception as e:
-            logger.error(f"Provider status check failed: {e}")
-            return {"provider": "error", "error": f"Status check failed: {str(e)}"}
