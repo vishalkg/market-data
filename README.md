@@ -35,10 +35,10 @@ Access market data tools via HTTPS from any device (desktop/mobile) when MCP int
 # Prepare for deployment
 ./deploy.sh
 
-# Deploy to AWS (follow prompts)
+# Deploy to AWS (uses 'personal' profile by default)
 cd cdk
-npx cdk bootstrap --profile YOUR_PROFILE
-npx cdk deploy --profile YOUR_PROFILE
+npx cdk bootstrap --profile personal
+npx cdk deploy --profile personal
 ```
 
 **Features:**

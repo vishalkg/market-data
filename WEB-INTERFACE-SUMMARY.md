@@ -95,12 +95,12 @@ This will:
 ### 2. Bootstrap CDK (First Time Only)
 ```bash
 cd cdk
-npx cdk bootstrap --profile YOUR_PROFILE
+npx cdk bootstrap --profile personal
 ```
 
 ### 3. Deploy Stack
 ```bash
-npx cdk deploy --profile YOUR_PROFILE
+npx cdk deploy --profile personal
 ```
 
 ### 4. Access Web Interface
@@ -134,7 +134,7 @@ Then rebuild and redeploy:
 ```bash
 cd cdk
 npm run build
-npx cdk deploy --profile YOUR_PROFILE
+npx cdk deploy --profile personal
 ```
 
 ### Change AWS Region

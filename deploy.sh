@@ -11,8 +11,8 @@ echo "========================================="
 echo ""
 
 # Prompt for AWS profile
-read -p "Enter your AWS profile name (default: default): " AWS_PROFILE
-AWS_PROFILE=${AWS_PROFILE:-default}
+read -p "Enter your AWS profile name (default: personal): " AWS_PROFILE
+AWS_PROFILE=${AWS_PROFILE:-personal}
 
 # Prompt for AWS region
 read -p "Enter your AWS region (default: us-east-1): " AWS_REGION

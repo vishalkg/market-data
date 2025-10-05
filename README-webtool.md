@@ -20,10 +20,10 @@ This will:
 cd cdk
 
 # First time only - bootstrap CDK
-npx cdk bootstrap --profile YOUR_PROFILE
+npx cdk bootstrap --profile personal
 
 # Deploy the stack
-npx cdk deploy --profile YOUR_PROFILE
+npx cdk deploy --profile personal
 ```
 
 **Access:**
@@ -63,7 +63,7 @@ Then rebuild and redeploy:
 ```bash
 cd cdk
 npm run build
-npx cdk deploy --profile YOUR_PROFILE
+npx cdk deploy --profile personal
 ```
 
 ## Project Structure

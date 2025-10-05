@@ -25,8 +25,8 @@ This checklist should be completed after deploying the web interface to AWS.
 - [ ] Run `./deploy.sh` successfully
 - [ ] CDK dependencies installed without errors
 - [ ] TypeScript builds without errors
-- [ ] Bootstrap CDK (first time): `npx cdk bootstrap --profile YOUR_PROFILE`
-- [ ] Deploy stack: `npx cdk deploy --profile YOUR_PROFILE`
+- [ ] Bootstrap CDK (first time): `npx cdk bootstrap --profile personal`
+- [ ] Deploy stack: `npx cdk deploy --profile personal`
 - [ ] Function URL is output after deployment
 - [ ] Copy Function URL for testing
 
@@ -250,7 +250,7 @@ If you want to remove the deployment:
 
 ```bash
 cd cdk
-npx cdk destroy --profile YOUR_PROFILE
+npx cdk destroy --profile personal
 ```
 
 - [ ] Stack destroyed successfully
