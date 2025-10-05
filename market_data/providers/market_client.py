@@ -5,30 +5,40 @@ from typing import Any, Dict, Optional
 
 import aiohttp
 
-from ..utils.api_keys import ProviderType
-from ..utils.data_optimizers import DataOptimizer
-from .providers import ProviderClient
-from .unified_stock_provider import UnifiedStockProvider
-from .unified_fundamentals_provider import UnifiedFundamentalsProvider
-from .unified_historical_provider import UnifiedHistoricalProvider
+from ..services.stock_service import StockService
+from ..services.options_service import OptionsService
+from ..services.fundamentals_service import FundamentalsService
+from ..services.technical_service import TechnicalService
 
 logger = logging.getLogger(__name__)
 
 
-class MultiProviderClient(ProviderClient):
+class MultiProviderClient:
+    """Simplified market client using clean service layer"""
+    
     def __init__(self):
-        super().__init__()
-        self.optimizer = DataOptimizer()
-        self.unified_stock_provider = UnifiedStockProvider()
-        self.unified_fundamentals_provider = UnifiedFundamentalsProvider()
-        self.unified_historical_provider = UnifiedHistoricalProvider()
+        # Initialize services
+        self.stock_service = StockService()
+        self.options_service = OptionsService()
+        self.fundamentals_service = FundamentalsService()
+        self.technical_service = TechnicalService()
+        
+        logger.info("MultiProviderClient initialized with service layer")
 
-    async def get_quote(
-        self, session: aiohttp.ClientSession, symbol: str
-    ) -> Dict[str, Any]:
-        """Get real-time stock quote: Robinhood primary, Finnhub fallback"""
-        return await self.unified_stock_provider.get_stock_quote(session, symbol)
+    # Stock data methods
+    async def get_quote(self, session: aiohttp.ClientSession, symbol: str) -> Dict[str, Any]:
+        """Get real-time stock quote via service layer"""
+        return await self.stock_service.get_stock_quote(symbol)
+    
+    async def get_stock_quote(self, session: aiohttp.ClientSession, symbol: str) -> Dict[str, Any]:
+        """Get real-time stock quote via service layer (compatibility alias)"""
+        return await self.stock_service.get_stock_quote(symbol)
+    
+    async def get_multiple_quotes(self, symbols: list) -> Dict[str, Any]:
+        """Get multiple stock quotes via service layer"""
+        return await self.stock_service.get_multiple_quotes(symbols)
 
+    # Options data methods
     async def get_options_chain(
         self,
         session: aiohttp.ClientSession,
@@ -36,123 +46,92 @@ class MultiProviderClient(ProviderClient):
         expiration_date: Optional[str] = None,
         max_expirations: int = 10,
     ) -> Dict[str, Any]:
-        """Get options chain from Finnhub with Robinhood failover"""
-        params = {"symbol": symbol}
-        if expiration_date:
-            params["expiration"] = expiration_date
-
-        # Try Finnhub first
-        result = await self.make_request(
-            session, ProviderType.FINNHUB, "stock/option-chain", params
+        """Get options chain via service layer"""
+        return await self.options_service.get_options_chain(
+            symbol, 
+            expiration_date=expiration_date,
+            max_expirations=max_expirations
         )
 
-        # If Finnhub fails, fallback to Robinhood
-        if "error" in result:
-            logger.info(f"Finnhub failed for {symbol}, trying Robinhood fallback")
-            try:
-                import robin_stocks.robinhood as rh
+    # Fundamentals data methods
+    async def get_fundamentals(self, session: aiohttp.ClientSession, symbol: str) -> Dict[str, Any]:
+        """Get company fundamentals via service layer"""
+        return await self.fundamentals_service.get_fundamentals(symbol)
+    
+    async def get_company_profile(self, symbol: str) -> Dict[str, Any]:
+        """Get company profile via service layer"""
+        return await self.fundamentals_service.get_company_profile(symbol)
 
-                # Get options data from Robinhood
-                options_data = rh.options.get_chains(symbol)
+    # Technical indicators methods
+    async def get_rsi(self, session: aiohttp.ClientSession, symbol: str, period: int = 14) -> Dict[str, Any]:
+        """Get RSI via service layer"""
+        return await self.technical_service.get_rsi(symbol, period)
 
-                if options_data:
-                    return {
-                        "provider": "robinhood",
-                        "data": {
-                            "symbol": symbol,
-                            "options": options_data,
-                            "note": "Data from Robinhood (comprehensive options data)",
-                        },
-                    }
-                else:
-                    return {
-                        "error": "No options data available from Robinhood",
-                        "provider": "robinhood",
-                    }
+    async def get_macd(self, session: aiohttp.ClientSession, symbol: str) -> Dict[str, Any]:
+        """Get MACD via service layer"""
+        return await self.technical_service.get_macd(symbol)
 
-            except Exception as e:
-                logger.error(f"Robinhood fallback failed: {e}")
-                return {
-                    "error": f"Both Finnhub and Robinhood failed. Finnhub: {result.get('error', 'Unknown error')}, Robinhood: {str(e)}",
-                    "provider": "failover_exhausted",
-                }
+    async def get_bollinger_bands(self, session: aiohttp.ClientSession, symbol: str, period: int = 20) -> Dict[str, Any]:
+        """Get Bollinger Bands via service layer"""
+        return await self.technical_service.get_bollinger_bands(symbol, period)
+    
+    async def get_technical_indicators(self, session: aiohttp.ClientSession, symbol: str, indicator: str) -> Dict[str, Any]:
+        """Get technical indicators via service layer (compatibility method)"""
+        if indicator.lower() == "rsi":
+            return await self.technical_service.get_rsi(symbol)
+        elif indicator.lower() == "macd":
+            return await self.technical_service.get_macd(symbol)
+        elif indicator.lower() == "bollinger_bands":
+            return await self.technical_service.get_bollinger_bands(symbol)
+        elif indicator.lower() == "all":
+            return await self.technical_service.get_all_indicators(symbol)
+        else:
+            return {"error": f"Unknown indicator: {indicator}", "available": ["rsi", "macd", "bollinger_bands", "all"]}
 
-        # Optimize Finnhub data if successful
-        if "data" in result:
-            return self.optimizer.optimize_options_data(result, max_expirations)
-        return result
+    # Historical data methods (placeholder - would need historical service)
+    async def get_historical_data(self, symbol: str, period: str = "1y") -> Dict[str, Any]:
+        """Get historical data - placeholder for future historical service"""
+        # For now, try to get from stock service providers
+        try:
+            # Use first available provider that supports historical data
+            for provider in self.stock_service.quote_chain.providers:
+                if hasattr(provider, 'get_historical_data'):
+                    result = await provider.get_historical_data(symbol, period)
+                    result["provider"] = provider.name
+                    return result
+            
+            return {"error": "No providers support historical data", "symbol": symbol}
+        except Exception as e:
+            return {"error": str(e), "symbol": symbol}
 
-    async def get_fundamentals(
-        self, session: aiohttp.ClientSession, symbol: str
-    ) -> Dict[str, Any]:
-        """Get company fundamentals: Robinhood primary, FMP → Finnhub fallback"""
-        return await self.unified_fundamentals_provider.get_fundamentals(session, symbol)
-
-    async def get_rsi(
-        self, session: aiohttp.ClientSession, symbol: str, period: int = 14
-    ) -> Dict[str, Any]:
-        """Get RSI from Alpha Vantage with optimization"""
-        params = {
-            "function": "RSI",
-            "symbol": symbol,
-            "interval": "daily",
-            "time_period": period,
-            "series_type": "close",
-        }
-
-        result = await self.make_request(
-            session, ProviderType.ALPHA_VANTAGE, "", params
-        )
-
-        if "data" in result:
-            return self.optimizer.optimize_rsi_data(result, symbol, period)
-        return result
-
-    async def get_macd(
-        self, session: aiohttp.ClientSession, symbol: str
-    ) -> Dict[str, Any]:
-        """Get MACD from Alpha Vantage with optimization"""
-        params = {
-            "function": "MACD",
-            "symbol": symbol,
-            "interval": "daily",
-            "series_type": "close",
-        }
-
-        result = await self.make_request(
-            session, ProviderType.ALPHA_VANTAGE, "", params
-        )
-
-        if "data" in result:
-            return self.optimizer.optimize_macd_data(result, symbol)
-        return result
-
-    async def get_bollinger_bands(
-        self, session: aiohttp.ClientSession, symbol: str, period: int = 20
-    ) -> Dict[str, Any]:
-        """Get Bollinger Bands from Alpha Vantage with optimization"""
-        params = {
-            "function": "BBANDS",
-            "symbol": symbol,
-            "interval": "daily",
-            "time_period": period,
-            "series_type": "close",
-        }
-
-        result = await self.make_request(
-            session, ProviderType.ALPHA_VANTAGE, "", params
-        )
-
-        if "data" in result:
-            return self.optimizer.optimize_bollinger_data(result, symbol, period)
-        return result
-
+    # Market status methods (placeholder)
     async def get_market_status(self, session: aiohttp.ClientSession) -> Dict[str, Any]:
-        """Get market status from Finnhub"""
-        return await self.make_request(
-            session, ProviderType.FINNHUB, "stock/market-status", {"exchange": "US"}
-        )
+        """Get market status - placeholder"""
+        return {"status": "unknown", "note": "Market status not implemented in service layer yet"}
 
+    # Service management methods
     def get_usage_stats(self) -> Dict[str, Any]:
-        """Get API usage statistics"""
-        return self.key_manager.get_usage_stats()
+        """Get usage statistics from all services"""
+        return {
+            "stock_service": self.stock_service.get_available_capabilities(),
+            "options_service": self.options_service.get_available_capabilities(),
+            "fundamentals_service": self.fundamentals_service.get_available_capabilities(),
+            "technical_service": self.technical_service.get_available_capabilities()
+        }
+    
+    async def get_all_provider_status(self) -> Dict[str, Any]:
+        """Get status of all providers across all services"""
+        return {
+            "stock_providers": await self.stock_service.get_provider_status(),
+            "options_providers": await self.options_service.get_provider_status(),
+            "fundamentals_providers": await self.fundamentals_service.get_provider_status(),
+            "technical_providers": await self.technical_service.get_provider_status()
+        }
+    
+    def reorder_all_providers(self, priority_order: list) -> None:
+        """Reorder providers across all services"""
+        self.stock_service.reorder_providers(priority_order)
+        self.options_service.reorder_providers(priority_order)
+        self.fundamentals_service.reorder_providers(priority_order)
+        self.technical_service.reorder_providers(priority_order)
+        logger.info(f"Reordered all service providers: {priority_order}")
