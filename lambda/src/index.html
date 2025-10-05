@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -151,6 +152,28 @@
             overflow-y: auto;
         }
 
+        .result-header {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .copy-btn {
+            width: auto;
+            padding: 8px 16px;
+            background: #48bb78;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #38a169;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .copy-btn.copied {
+            background: #2f855a;
+        }
+
         .result-output {
             background: #2d3748;
             color: #e2e8f0;
@@ -205,15 +228,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Login Page -->
         <div id="login-page" class="page active">
-            <h1>Market Data Tools</h1>
             <div class="login-form">
                 <div class="form-group">
-                    <label for="token-input">Enter Secret</label>
-                    <input type="password" id="token-input" placeholder="Enter your secret token" autocomplete="off">
+                    <input type="password" id="token-input" placeholder="Enter secret" autocomplete="off">
                 </div>
                 <button onclick="login()">Login</button>
                 <div id="login-error" class="error-message"></div>
@@ -256,6 +278,9 @@
             <button class="execute-btn" onclick="executeTool()">Execute Tool</button>
 
             <div class="result-container">
+                <div class="result-header" style="display: none; margin-bottom: 10px;">
+                    <button class="copy-btn" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                </div>
                 <div id="result-output" class="result-output">
                     Results will appear here...
                 </div>
@@ -318,6 +343,7 @@
             sessionStorage.removeItem('auth_token');
             document.getElementById('result-output').textContent = 'Results will appear here...';
             document.getElementById('result-output').classList.remove('error');
+            document.querySelector('.result-header').style.display = 'none';
             showLoginPage();
         }
 
@@ -399,6 +425,7 @@
         async function executeTool() {
             const toolSelect = document.getElementById('tool-select');
             const resultOutput = document.getElementById('result-output');
+            const resultHeader = document.querySelector('.result-header');
             const token = sessionStorage.getItem('auth_token');
             const selectedTool = toolSelect.value;
 
@@ -421,6 +448,7 @@
             // Show loading state
             resultOutput.textContent = 'Loading...';
             resultOutput.classList.remove('error');
+            resultHeader.style.display = 'none';
 
             try {
                 const response = await fetch(`/tools/${selectedTool}?${params.toString()}`);
@@ -432,31 +460,59 @@
                 }
 
                 if (data.success) {
-                    resultOutput.textContent = JSON.stringify(data, null, 2);
+                    // Show only the data, not the success wrapper
+                    resultOutput.textContent = JSON.stringify(data.data, null, 2);
                     resultOutput.classList.remove('error');
+                    resultHeader.style.display = 'flex';
                 } else {
-                    resultOutput.textContent = JSON.stringify(data, null, 2);
+                    // Show error message
+                    resultOutput.textContent = JSON.stringify({
+                        error: data.error
+                    }, null, 2);
                     resultOutput.classList.add('error');
+                    resultHeader.style.display = 'none';
                 }
 
                 // Scroll to result
                 resultOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } catch (error) {
                 resultOutput.textContent = JSON.stringify({
-                    success: false,
                     error: 'Network error. Please try again.',
                     details: error.message
                 }, null, 2);
                 resultOutput.classList.add('error');
+                resultHeader.style.display = 'none';
                 console.error('Tool execution error:', error);
             }
         }
 
+        // Copy to Clipboard
+        function copyToClipboard() {
+            const resultOutput = document.getElementById('result-output');
+            const copyBtn = document.querySelector('.copy-btn');
+            const text = resultOutput.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✓ Copied!';
+                copyBtn.classList.add('copied');
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+
         // Handle Enter key in login
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const tokenInput = document.getElementById('token-input');
             if (tokenInput) {
-                tokenInput.addEventListener('keypress', function(e) {
+                tokenInput.addEventListener('keypress', function (e) {
                     if (e.key === 'Enter') {
                         login();
                     }
@@ -468,4 +524,5 @@
         });
     </script>
 </body>
+
 </html>
