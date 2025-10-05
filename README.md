@@ -18,9 +18,15 @@ A comprehensive Model Context Protocol (MCP) server providing real-time market d
 - **Comprehensive Testing**: 52 tests, 100% success rate
 - **Error-Free Production**: 0% error rate in live deployment
 
+### **✅ Dual Access Modes**
+- **MCP Server**: Native integration with Q CLI and MCP clients
+- **Web Interface**: HTTPS endpoint for browser-based access from any device
+
 ## 🛠️ **Quick Start**
 
-### **Installation**
+### **MCP Server (Primary)**
+
+#### Installation
 ```bash
 # Clone and install
 git clone https://github.com/vishalkg/market-data.git
@@ -31,14 +37,14 @@ pip install -e .
 python run_all_tests.py  # Should show 52/52 tests passing
 ```
 
-### **Configuration**
+#### Configuration
 ```bash
 # Create .env file with your credentials
 cp .env.example .env
 # Edit .env with your API keys
 ```
 
-### **Run Server**
+#### Run Server
 ```bash
 # Start MCP server
 python -m market_data.server
@@ -46,6 +52,29 @@ python -m market_data.server
 # Or use the start script
 ./start.sh
 ```
+
+### **Web Interface (Alternative Access)**
+
+Access market data tools via HTTPS from any device (desktop/mobile) when MCP integration is unavailable.
+
+```bash
+# Prepare for deployment
+./deploy.sh
+
+# Deploy to AWS (uses 'personal' profile by default)
+cd cdk
+npx cdk bootstrap --profile personal
+npx cdk deploy --profile personal
+```
+
+**Web Interface Features:**
+- 🌐 HTTPS endpoint with AWS-managed SSL
+- 🔐 Token-based authentication
+- 📱 Works on desktop and mobile
+- 💰 ~$0.50/month cost
+- 🎯 All 14 MCP tools available
+
+See [README-webtool.md](README-webtool.md) for detailed web interface documentation.
 
 ## 📊 **Available Tools**
 
@@ -159,6 +188,7 @@ FMP_API_KEY=your_key
 ## 📚 **Documentation**
 
 - **[SOTU.md](SOTU.md)**: Complete system status and metrics
+- **[README-webtool.md](README-webtool.md)**: Web interface documentation
 - **[Architecture Guide](misc/PROVIDER_ARCHITECTURE_REFACTORING_STRATEGY.md)**: Technical architecture details
 - **[API Documentation](docs/)**: Detailed API reference
 

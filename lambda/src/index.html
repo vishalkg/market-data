@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Data Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Login Page Styles */
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="password"],
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Tools Page Styles */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logout-btn {
+            width: auto;
+            padding: 10px 20px;
+            background: #e74c3c;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+        .tool-selector {
+            margin-bottom: 20px;
+        }
+
+        .params-container {
+            margin-bottom: 20px;
+        }
+
+        .param-group {
+            margin-bottom: 15px;
+        }
+
+        .execute-btn {
+            margin-bottom: 20px;
+        }
+
+        .result-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0;
+            max-height: 500px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px 20px 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .copy-btn {
+            width: auto;
+            padding: 8px 16px;
+            background: #48bb78;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #38a169;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .copy-btn.copied {
+            background: #2f855a;
+        }
+
+        .result-output {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            margin: 0 20px 20px 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-y: auto;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            flex: 1;
+        }
+
+        .result-output.error {
+            background: #742a2a;
+            color: #feb2b2;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .logout-btn {
+                width: 100%;
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none;
+        }
+
+        .mt-2 {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Login Page -->
+        <div id="login-page" class="page active">
+            <div class="login-form">
+                <div class="form-group">
+                    <input type="password" id="token-input" placeholder="Enter secret" autocomplete="off">
+                </div>
+                <button onclick="login()">Login</button>
+                <div id="login-error" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Tools Page -->
+        <div id="tools-page" class="page">
+            <div class="header">
+                <h1>Market Data Tools</h1>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+
+            <div class="tool-selector">
+                <div class="form-group">
+                    <label for="tool-select">Select Tool</label>
+                    <select id="tool-select" onchange="updateParams()">
+                        <option value="get_stock_quote">Get Stock Quote</option>
+                        <option value="get_multiple_quotes">Get Multiple Quotes</option>
+                        <option value="get_fundamentals">Get Fundamentals</option>
+                        <option value="get_enhanced_fundamentals">Get Enhanced Fundamentals</option>
+                        <option value="get_historical">Get Historical Data</option>
+                        <option value="get_intraday">Get Intraday Data</option>
+                        <option value="get_indicators">Get Technical Indicators</option>
+                        <option value="get_supported_indicators">Get Supported Indicators</option>
+                        <option value="get_options_chain">Get Options Chain</option>
+                        <option value="get_option_greeks">Get Option Greeks</option>
+                        <option value="get_provider_status">Get Provider Status</option>
+                        <option value="search_symbols">Search Symbols</option>
+                        <option value="get_market_status">Get Market Status</option>
+                        <option value="get_earnings_calendar">Get Earnings Calendar</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="params-container" class="params-container">
+                <!-- Dynamic parameter inputs will be inserted here -->
+            </div>
+
+            <button class="execute-btn" onclick="executeTool()">Execute Tool</button>
+
+            <div class="result-container">
+                <div class="result-header" style="display: none; margin-bottom: 10px;">
+                    <button class="copy-btn" onclick="copyToClipboard()">📋 Copy to Clipboard</button>
+                </div>
+                <div id="result-output" class="result-output">
+                    Results will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Session Management
+        function checkSession() {
+            const token = sessionStorage.getItem('auth_token');
+            if (token) {
+                showToolsPage();
+            } else {
+                showLoginPage();
+            }
+        }
+
+        function showLoginPage() {
+            document.getElementById('login-page').classList.add('active');
+            document.getElementById('tools-page').classList.remove('active');
+        }
+
+        function showToolsPage() {
+            document.getElementById('login-page').classList.remove('active');
+            document.getElementById('tools-page').classList.add('active');
+            updateParams(); // Initialize parameter inputs
+        }
+
+        async function login() {
+            const tokenInput = document.getElementById('token-input');
+            const errorDiv = document.getElementById('login-error');
+            const token = tokenInput.value.trim();
+
+            if (!token) {
+                errorDiv.textContent = 'Please enter a token';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/validate?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    sessionStorage.setItem('auth_token', token);
+                    errorDiv.textContent = '';
+                    tokenInput.value = '';
+                    showToolsPage();
+                } else {
+                    errorDiv.textContent = 'Access Denied';
+                    tokenInput.value = '';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Network error. Please try again.';
+                console.error('Login error:', error);
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('auth_token');
+            document.getElementById('result-output').textContent = 'Results will appear here...';
+            document.getElementById('result-output').classList.remove('error');
+            document.querySelector('.result-header').style.display = 'none';
+            showLoginPage();
+        }
+
+        // Tool Parameter Management
+        const toolParams = {
+            'get_stock_quote': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true }
+            ],
+            'get_multiple_quotes': [
+                { name: 'symbols', label: 'Symbols (comma-separated)', type: 'text', default: 'AAPL,GOOGL,MSFT', required: true }
+            ],
+            'get_fundamentals': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true }
+            ],
+            'get_enhanced_fundamentals': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true }
+            ],
+            'get_historical': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true },
+                { name: 'interval', label: 'Interval', type: 'text', default: 'day', required: false }
+            ],
+            'get_intraday': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true },
+                { name: 'interval', label: 'Interval', type: 'text', default: '5min', required: false }
+            ],
+            'get_indicators': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true },
+                { name: 'indicator', label: 'Indicator', type: 'text', default: 'SMA', required: true }
+            ],
+            'get_supported_indicators': [],
+            'get_options_chain': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true }
+            ],
+            'get_option_greeks': [
+                { name: 'symbol', label: 'Symbol', type: 'text', default: 'AAPL', required: true },
+                { name: 'strike', label: 'Strike Price', type: 'text', default: '175.0', required: true },
+                { name: 'type', label: 'Type (call/put)', type: 'text', default: 'call', required: true }
+            ],
+            'get_provider_status': [],
+            'search_symbols': [
+                { name: 'query', label: 'Search Query', type: 'text', default: 'APP', required: true }
+            ],
+            'get_market_status': [],
+            'get_earnings_calendar': []
+        };
+
+        function updateParams() {
+            const toolSelect = document.getElementById('tool-select');
+            const paramsContainer = document.getElementById('params-container');
+            const selectedTool = toolSelect.value;
+            const params = toolParams[selectedTool] || [];
+
+            if (params.length === 0) {
+                paramsContainer.innerHTML = '<p style="color: #666; font-style: italic;">No parameters required for this tool.</p>';
+                return;
+            }
+
+            let html = '';
+            params.forEach(param => {
+                html += `
+                    <div class="param-group">
+                        <label for="param-${param.name}">${param.label}${param.required ? ' *' : ''}</label>
+                        <input 
+                            type="${param.type}" 
+                            id="param-${param.name}" 
+                            name="${param.name}"
+                            value="${param.default || ''}"
+                            placeholder="${param.label}"
+                            ${param.required ? 'required' : ''}
+                        >
+                    </div>
+                `;
+            });
+
+            paramsContainer.innerHTML = html;
+        }
+
+        // Tool Execution
+        async function executeTool() {
+            const toolSelect = document.getElementById('tool-select');
+            const resultOutput = document.getElementById('result-output');
+            const resultHeader = document.querySelector('.result-header');
+            const token = sessionStorage.getItem('auth_token');
+            const selectedTool = toolSelect.value;
+
+            if (!token) {
+                logout();
+                return;
+            }
+
+            // Collect parameters
+            const params = new URLSearchParams();
+            params.append('token', token);
+
+            const paramInputs = document.querySelectorAll('#params-container input');
+            paramInputs.forEach(input => {
+                if (input.value) {
+                    params.append(input.name, input.value);
+                }
+            });
+
+            // Show loading state
+            resultOutput.textContent = 'Loading...';
+            resultOutput.classList.remove('error');
+            resultHeader.style.display = 'none';
+
+            try {
+                const response = await fetch(`/tools/${selectedTool}?${params.toString()}`);
+                const data = await response.json();
+
+                if (response.status === 403) {
+                    logout();
+                    return;
+                }
+
+                if (data.success) {
+                    // Show only the data, not the success wrapper
+                    resultOutput.textContent = JSON.stringify(data.data, null, 2);
+                    resultOutput.classList.remove('error');
+                    resultHeader.style.display = 'flex';
+                } else {
+                    // Show error message
+                    resultOutput.textContent = JSON.stringify({
+                        error: data.error
+                    }, null, 2);
+                    resultOutput.classList.add('error');
+                    resultHeader.style.display = 'none';
+                }
+
+                // Scroll to result
+                resultOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (error) {
+                resultOutput.textContent = JSON.stringify({
+                    error: 'Network error. Please try again.',
+                    details: error.message
+                }, null, 2);
+                resultOutput.classList.add('error');
+                resultHeader.style.display = 'none';
+                console.error('Tool execution error:', error);
+            }
+        }
+
+        // Copy to Clipboard
+        function copyToClipboard() {
+            const resultOutput = document.getElementById('result-output');
+            const copyBtn = document.querySelector('.copy-btn');
+            const text = resultOutput.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✓ Copied!';
+                copyBtn.classList.add('copied');
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+
+        // Handle Enter key in login
+        document.addEventListener('DOMContentLoaded', function () {
+            const tokenInput = document.getElementById('token-input');
+            if (tokenInput) {
+                tokenInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        login();
+                    }
+                });
+            }
+
+            // Check session on page load
+            checkSession();
+        });
+    </script>
+</body>
+
+</html>

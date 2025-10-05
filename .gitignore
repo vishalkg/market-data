@@ -32,3 +32,39 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# CDK
+cdk.out/
+cdk/bin/
+cdk/lib/*.js
+cdk/lib/*.d.ts
+
+# Documentation (except README files)
+*.md
+!README*.md
+
+# Kiro specs (keep only in local)
+.kiro/
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# CDK
+cdk.out/
+cdk/bin/
+cdk/lib/*.js
+cdk/lib/*.d.ts
+
+# Documentation (except README files)
+*.md
+!README*.md
+
+# Kiro specs (keep only in local)
+.kiro/
