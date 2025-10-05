@@ -1,0 +1,36 @@
+{
+  "version": "48.0.0",
+  "files": {
+    "f27c7e4ffa93679594ccaee352f522611fb2114ea61599ef91506243678efeb6": {
+      "displayName": "McpToolsFunction/Code",
+      "source": {
+        "path": "asset.f27c7e4ffa93679594ccaee352f522611fb2114ea61599ef91506243678efeb6",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "849747721376-us-west-2-db9ad638": {
+          "bucketName": "cdk-hnb659fds-assets-849747721376-us-west-2",
+          "objectKey": "f27c7e4ffa93679594ccaee352f522611fb2114ea61599ef91506243678efeb6.zip",
+          "region": "us-west-2",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::849747721376:role/cdk-hnb659fds-file-publishing-role-849747721376-us-west-2"
+        }
+      }
+    },
+    "11fe08f502cdf30d22a45f532a82af84aa0adfd88958ed44d89484e162aedf2c": {
+      "displayName": "McpToolsWebStack Template",
+      "source": {
+        "path": "McpToolsWebStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "849747721376-us-west-2-045c85ce": {
+          "bucketName": "cdk-hnb659fds-assets-849747721376-us-west-2",
+          "objectKey": "11fe08f502cdf30d22a45f532a82af84aa0adfd88958ed44d89484e162aedf2c.json",
+          "region": "us-west-2",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::849747721376:role/cdk-hnb659fds-file-publishing-role-849747721376-us-west-2"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

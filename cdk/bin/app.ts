@@ -8,7 +8,7 @@ const app = new cdk.App();
 // Get AWS account and region from environment
 // These will be automatically detected from AWS CLI configuration
 const account = process.env.CDK_DEFAULT_ACCOUNT;
-const region = process.env.CDK_DEFAULT_REGION || 'us-east-1';
+const region = process.env.CDK_DEFAULT_REGION || 'us-west-2';
 
 new McpToolsStack(app, 'McpToolsWebStack', {
   env: {
