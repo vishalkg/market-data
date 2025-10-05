@@ -36,9 +36,14 @@ Thumbs.db
 # Node.js
 node_modules/
 package-lock.json
+npm-debug.log*
 
 # CDK
 cdk.out/
-*.js
-*.d.ts
-!jest.config.js
+cdk/bin/*.js
+cdk/bin/*.d.ts
+cdk/lib/*.js
+cdk/lib/*.d.ts
+
+# Kiro specs (keep only in local)
+.kiro/
