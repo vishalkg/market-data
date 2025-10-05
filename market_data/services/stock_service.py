@@ -2,11 +2,15 @@
 
 import logging
 from typing import Any, Dict, List
-import aiohttp
 
 from ..providers.provider_factory import ProviderFactory
 from ..providers.provider_chain import ProviderChain
 from ..providers.base_provider import ProviderCapability
+from ..utils.errors import (
+    ErrorType,
+    create_error_response,
+    create_success_response
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +40,33 @@ class StockService:
         """Get stock quote with intelligent fallback"""
         logger.info(f"Getting stock quote for {symbol}")
         
-        result = await self.quote_chain.execute_with_capability_filter(
-            "get_stock_quote",
-            ProviderCapability.REAL_TIME_QUOTES,
-            symbol
-        )
-        
-        logger.info(f"Stock quote completed for {symbol} via {result.get('provider', 'unknown')}")
-        return result
+        try:
+            result = await self.quote_chain.execute_with_capability_filter(
+                "get_stock_quote",
+                ProviderCapability.REAL_TIME_QUOTES,
+                symbol
+            )
+            
+            # Check if result is an error
+            if isinstance(result, dict) and result.get("error"):
+                return result  # Already formatted error
+            
+            logger.info(f"Stock quote completed for {symbol} via {result.get('provider', 'unknown')}")
+            return create_success_response(
+                data=result.get("data", result),
+                metadata={
+                    "symbol": symbol,
+                    "provider": result.get("provider"),
+                    "timestamp": result.get("timestamp")
+                }
+            )
+        except Exception as e:
+            logger.error(f"Stock quote failed for {symbol}: {e}")
+            return create_error_response(
+                ErrorType.INTERNAL_ERROR,
+                f"Failed to get stock quote for {symbol}",
+                details={"symbol": symbol, "error": str(e)}
+            )
     
     async def get_multiple_quotes(self, symbols: List[str]) -> Dict[str, Any]:
         """Get multiple stock quotes with batch optimization"""

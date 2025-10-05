@@ -3,10 +3,11 @@
 import logging
 from typing import Any, Dict, List, Optional
 import robin_stocks.robinhood as rh
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .base_provider import BaseProvider, ProviderCapability
 from ..auth.robinhood_auth import RobinhoodAuth
+from ..utils.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,16 @@ logger = logging.getLogger(__name__)
 class RobinhoodProvider(BaseProvider):
     """Consolidated Robinhood provider with unlimited rate limits"""
     
+    # Authentication refresh settings
+    AUTH_TIMEOUT_HOURS = 23  # Re-authenticate before 24-hour token expiry
+    MAX_AUTH_RETRIES = 3
+    
     def __init__(self):
         self.auth = RobinhoodAuth()
         self._authenticated = False
+        self._auth_timestamp = None
+        self._auth_retry_count = 0
+        self.rate_limiter = get_rate_limiter()
     
     @property
     def name(self) -> str:
@@ -40,17 +48,64 @@ class RobinhoodProvider(BaseProvider):
         except Exception:
             return False
     
+    def _is_auth_expired(self) -> bool:
+        """Check if authentication token has expired"""
+        if not self._auth_timestamp:
+            return True
+        
+        elapsed = datetime.now() - self._auth_timestamp
+        return elapsed > timedelta(hours=self.AUTH_TIMEOUT_HOURS)
+    
     async def ensure_authenticated(self):
-        """Ensure Robinhood authentication is active"""
-        if not self._authenticated:
-            success = self.auth.login()
-            if not success:
-                raise Exception("Robinhood authentication failed")
-            self._authenticated = True
+        """Ensure Robinhood authentication is active with automatic refresh"""
+        # Check if we need to authenticate or refresh
+        if not self._authenticated or self._is_auth_expired():
+            await self._authenticate_with_retry()
+    
+    async def _authenticate_with_retry(self):
+        """Authenticate with retry logic"""
+        for attempt in range(self.MAX_AUTH_RETRIES):
+            try:
+                success = self.auth.login()
+                if success:
+                    self._authenticated = True
+                    self._auth_timestamp = datetime.now()
+                    self._auth_retry_count = 0
+                    logger.info("Robinhood authentication successful")
+                    return
+                else:
+                    logger.warning(f"Robinhood authentication attempt {attempt + 1} failed")
+            except Exception as e:
+                logger.error(f"Robinhood authentication error on attempt {attempt + 1}: {e}")
+                if attempt < self.MAX_AUTH_RETRIES - 1:
+                    # Wait before retry (exponential backoff)
+                    import asyncio
+                    await asyncio.sleep(2 ** attempt)
+        
+        # All retries failed
+        self._authenticated = False
+        self._auth_timestamp = None
+        raise Exception(f"Robinhood authentication failed after {self.MAX_AUTH_RETRIES} attempts")
+    
+    async def cleanup_session(self):
+        """Cleanup authentication session on failures"""
+        try:
+            rh.logout()
+            logger.info("Robinhood session cleaned up")
+        except Exception as e:
+            logger.warning(f"Error during session cleanup: {e}")
+        finally:
+            self._authenticated = False
+            self._auth_timestamp = None
+            self._auth_retry_count = 0
     
     # Stock data methods
     async def get_stock_quote(self, symbol: str) -> Dict[str, Any]:
         """Get real-time stock quote from Robinhood"""
+        # Acquire rate limit permission
+        if not await self.rate_limiter.acquire(self.name):
+            raise Exception(f"Rate limit timeout for {self.name}")
+        
         await self.ensure_authenticated()
         
         try:
@@ -87,10 +142,17 @@ class RobinhoodProvider(BaseProvider):
             
         except Exception as e:
             logger.error(f"Robinhood stock quote failed for {symbol}: {e}")
+            # Check if it's an auth error and cleanup
+            if "unauthorized" in str(e).lower() or "authentication" in str(e).lower():
+                await self.cleanup_session()
             raise
     
     async def get_multiple_quotes(self, symbols: List[str]) -> Dict[str, Any]:
         """Get multiple stock quotes in single request"""
+        # Acquire rate limit permission
+        if not await self.rate_limiter.acquire(self.name):
+            raise Exception(f"Rate limit timeout for {self.name}")
+        
         await self.ensure_authenticated()
         
         try:
